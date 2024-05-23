@@ -1,5 +1,7 @@
 package com.ps;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Scanner;
 
@@ -14,6 +16,7 @@ public class UserInterface {
 
         do{
             // Needs refactoring
+            System.out.println("0- SELL/LEASE A VEHICLE");
             System.out.println("1- Find vehicles within a price range");
             System.out.println("2- Find vehicles by make / model");
             System.out.println("3- Find vehicles by year range");
@@ -30,6 +33,9 @@ public class UserInterface {
             mainMenuCommand = scanner.nextInt();
 
             switch (mainMenuCommand){
+                case 0:
+                    processSellLeaseVehicle();
+                    break;
                 case 1:
                     processGetByPriceRequest();
                     break;
@@ -194,5 +200,69 @@ public class UserInterface {
         }
 
         System.out.println("Vehicle not found");
+    }
+    public void processSellLeaseVehicle(){
+        List<Vehicle> allVehicles = this.dealership.getAllVehicles();
+        LocalDate thisDay = LocalDate.now();
+        int currentYear = thisDay.getYear();
+        String dateOfContract = thisDay.toString();
+
+        System.out.println("What is your name?");
+        String customerName = scanner.nextLine();
+        scanner.nextLine();
+
+        System.out.println("What is your email?");
+        String customerEmail = scanner.nextLine();
+
+        System.out.println("Are you looking to (L)ease or to (B)uy a Vehicle?");
+        String newContract = scanner.nextLine();
+        if (newContract.equalsIgnoreCase("l")){
+            System.out.println("What is the vin number of the car you are looking to lease?");
+            int userVin = scanner.nextInt();
+
+            for(Vehicle vehicle: allVehicles){
+                if(vehicle.getVin() == userVin && ((vehicle.getYear() + 3) >= currentYear)){
+                    String vehicleSold = vehicle.getModel();
+                    this.dealership.removeVehicle(vehicle);
+                    Contract newLease = new LeaseContract(dateOfContract, customerName, customerEmail,vehicleSold);
+                    scanner.nextLine();
+                    System.out.println("Vehicle found!");
+                    System.out.println("Total Lease price:" + newLease.getTotalPrice());
+                    System.out.println("Monthly payment for 36 months:" + newLease.getMonthlyPayment());
+                    ContractDataManager.saveContract(newLease, vehicle);
+                    return;
+                } else if (vehicle.getVin() != userVin) {
+                    System.out.println("Car not Found!");
+                    return;
+                } else {
+                    System.out.println("Cannot lease this vehicle");
+                    return;
+                }
+            }
+        } else if (newContract.equalsIgnoreCase("b")) {
+            System.out.println("What is the vin number of the car you are looking to buy?");
+            int userVin = scanner.nextInt();
+
+            for (Vehicle vehicle : allVehicles) {
+                if (vehicle.getVin() == userVin) {
+                    Contract newPurchase = new SalesContract(dateOfContract, customerName, customerEmail, vehicle.getModel());
+                    scanner.nextLine();
+                    System.out.println("Vehicle found!");
+                    System.out.println("Are you looking to finance? (Y/N)");
+                    String willTheyFinance = scanner.nextLine();
+                    if (willTheyFinance.equalsIgnoreCase("y")) {
+                        System.out.println("Monthly payment:" + newPurchase.getMonthlyPayment());
+
+                    } else {
+                        System.out.println("Total sale price:" + newPurchase.getTotalPrice());
+                    }
+                    this.dealership.removeVehicle(vehicle);
+                    ContractDataManager.saveContract(newPurchase, vehicle);
+                    return;
+                }
+            }
+
+        }
+
     }
 }
